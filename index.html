@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>Конфигуратор ПК</title>
+<style>
+:root{--bg:#f3f4f6;--cd:#fff;--tx:#1c1e23;--mu:#6b7280;--ac:#d9363e;--bd:#dde0e6;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#121418;--cd:#1c1f26;--tx:#e8eaee;--mu:#9aa1ad;--bd:#2c3039}}
+:root[data-theme=dark]{--bg:#121418;--cd:#1c1f26;--tx:#e8eaee;--mu:#9aa1ad;--bd:#2c3039}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.w{max-width:1000px;margin:0 auto;padding:16px}h1{font-size:22px;margin:0 0 12px}
+.st{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}
+.st button{flex:1;min-width:120px;padding:10px;border:1px solid var(--bd);background:var(--cd);color:var(--tx);border-radius:10px;cursor:pointer;font:inherit}
+.st .on{border-color:var(--ac);color:var(--ac);font-weight:600}.st .dn::after{content:" ✓"}
+.m{display:grid;grid-template-columns:1fr 280px;gap:12px;align-items:start}
+@media(max-width:800px){.m{grid-template-columns:1fr}}
+.pn{background:var(--cd);border:1px solid var(--bd);border-radius:12px;padding:12px}
+input[type=search]{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+.o{display:flex;justify-content:space-between;gap:8px;color:var(--mu);font-size:13px;margin:8px 0}
+.l{max-height:62vh;overflow:auto}
+.g{display:flex;justify-content:space-between;padding:10px 4px;cursor:pointer;border-bottom:1px solid var(--bd)}.g.sel{color:var(--ac);font-weight:600}
+.it{display:flex;gap:10px;align-items:center;padding:8px 4px 8px 22px;cursor:pointer}.it input{width:18px;height:18px;accent-color:var(--ac)}
+.sm div{padding:6px 0;border-bottom:1px solid var(--bd)}.sm small{display:block;color:var(--mu)}
+.bt{margin-top:10px;width:100%;padding:10px;border:0;border-radius:8px;background:var(--ac);color:#fff;font:inherit;cursor:pointer}
+.nt{color:var(--mu);font-size:12px;margin-top:12px}
+</style></head><body><div class="w"><h1>Конфигуратор ПК</h1><div class="st" id="st"></div>
+<div class="m"><div class="pn"><input type="search" id="q" placeholder="Поиск по названию: rtx, 5060, i3-12100…"><div class="o"><label><input type="checkbox" id="al"> Без фильтра совместимости</label><span id="cn"></span></div><div class="l" id="ls"></div></div>
+<div class="pn sm" id="sm"></div></div>
+<p class="nt">Материнские платы указаны на уровне чипсета и форм-фактора. Каталог загружается из Supabase (таблица parts), новые комплектующие добавляются строками в таблицу.</p></div>
+<script>
+const $=s=>document.getElementById(s),N=s=>s.toLowerCase().replace(/[^a-z0-9а-я]/g,'');
+const SB='https://aswvgejbogviqemonixd.supabase.co',KEY='sb_publishable_DunwabYQSViUbfJEimCBIw_nQ-nsYyo';
+let PL=[],CPU=[],BRD=[],GPU=[],RAM=[];
+async function load(){$('ls').textContent='Загрузка каталога…';
+try{const rows=[];for(let o=0;;o+=1000){const r=await fetch(SB+'/rest/v1/parts?select=kind,grp,name,platform,mem&order=id&limit=1000&offset='+o,{headers:{apikey:KEY}});
+if(!r.ok)throw 0;const a=await r.json();rows.push(...a);if(a.length<1000)break}
+const by={cpu:CPU,board:BRD,gpu:GPU,ram:RAM};
+rows.forEach(r=>{const o={g:r.grp,n:r.name,p:r.platform,m:r.mem};if(r.kind=='platform'){o.id=r.platform;o.p=null;PL.push(o)}else by[r.kind].push(o)})}
+catch(e){$('ls').textContent='Не удалось загрузить каталог из Supabase';return}
+R()}
+const DATA=()=>[PL,CPU,BRD,GPU,RAM],K=['plat','cpu','brd','gpu','ram'],T=['Платформа','Процессор','Материнская плата','Видеокарта','Память RAM'];
+const S={s:0,o:new Set(),all:false,plat:null,cpu:null,brd:null,gpu:null,ram:null};let q='',cur=[];
+const mem=()=>S.brd?S.brd.m:S.plat&&S.plat.m;
+function fix(){const p=S.plat;if(S.cpu&&p&&S.cpu.p!==p.id)S.cpu=null;if(S.brd&&p&&S.brd.p!==p.id)S.brd=null;const m=mem();if(S.ram&&m&&!m.includes(S.ram.m))S.ram=null}
+function vis(s){const p=S.plat,m=mem();return DATA()[s].filter(i=>{if(!S.all){if((s==1||s==2)&&p&&i.p!==p.id)return false;if(s==4&&m&&!m.includes(i.m))return false}return!q||N(i.g+i.n).includes(q)})}
+function pick(s,i){const k=K[s];if(S[k]===i)S[k]=null;else{S[k]=i;if(s==1||s==2)S.plat=PL.find(x=>x.id===i.p)}fix()}
+function R(){const s=S.s;$('st').innerHTML=T.map((t,i)=>`<button data-s="${i}" class="${i==s?'on ':''}${S[K[i]]?'dn':''}">${i+1}. ${t}</button>`).join('');
+const it=vis(s),gs=new Map();cur=it;it.forEach((i,x)=>{i.x=x;if(!gs.has(i.g))gs.set(i.g,[]);gs.get(i.g).push(i)});
+$('cn').textContent='Найдено: '+it.length;
+$('ls').innerHTML=[...gs].map(([g,a])=>{const has=a.some(i=>S[K[s]]===i),op=q||S.o.has(s+'|'+g);
+return`<div class="g${has?' sel':''}" data-g="${g}"><span>${g} (${a.length})</span><span>${op?'⌃':'⌄'}</span></div>`+(op?a.map(i=>`<label class="it"><input type="checkbox" data-i="${i.x}"${S[K[s]]===i?' checked':''}>${i.n}</label>`).join(''):'')}).join('')||'<p>Ничего не найдено</p>';
+const m=mem();$('sm').innerHTML='<b>Ваша сборка</b>'+T.map((t,i)=>`<div><small>${t}</small>${S[K[i]]?S[K[i]].n:'—'}</div>`).join('')+(m?`<div><small>Тип памяти</small>${m.split('').map(x=>'DDR'+x).join(' / ')}</div>`:'')+'<button class="bt" id="rs">Сбросить</button>'}
+document.onclick=e=>{const t=e.target.closest('[data-s],[data-g],[data-i],#rs');if(!t)return;
+if(t.dataset.s){S.s=+t.dataset.s;q='';$('q').value=''}else if(t.dataset.g){const k=S.s+'|'+t.dataset.g;S.o.has(k)?S.o.delete(k):S.o.add(k)}
+else if(t.dataset.i)pick(S.s,cur[+t.dataset.i]);else K.forEach(k=>S[k]=null);R()};
+$('q').oninput=e=>{q=N(e.target.value);R()};$('al').onchange=e=>{S.all=e.target.checked;R()};load();
+</script></body></html>
